@@ -152,7 +152,7 @@ def draw_board(board):
 		else:
 			msg = "You lose in " if evaluation >0 else "You win in "
 
-		evalstr = msg + str(42 - board.nbMoves() - abs(evaluation)) + " moves"	
+		evalstr = msg + str(42 - board.nbMoves() - 2*abs(evaluation)) + " moves"	
 	else :
 		evalstr = str(board.move_number) +"  |  Evaluation = " + str(evaluation) 
 
