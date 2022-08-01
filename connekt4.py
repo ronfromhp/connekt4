@@ -46,7 +46,7 @@ def make_move(col):
 		Board.moves = Board.moves + str(col+1)
 		board.print_board()
 		print("eval: " , evaluation)
-		print("ends in  :" , 42 - board.nbMoves() - abs(evaluation))
+		print("ends in  :" , 42 - board.nbMoves() - 2*abs(evaluation))
 		draw_board(board)
 
 board = Board()
