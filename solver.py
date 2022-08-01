@@ -49,10 +49,7 @@ class Solver:
 				moves.add(move, board.moveScore(move))
     
 		while (next := moves.getNext()):
-		# for col in Solver.columnOrder:
-		# 	if next & Board.column_mask(col) :
-			# board2 = copy.deepcopy(board)
-			# board2.playCol(col)
+		
 			board2 = copy.deepcopy(board)
 			board2.play(next)
 			new_score=  self.negamax_solverr(board2 , -beta,-alpha)
