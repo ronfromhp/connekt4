@@ -1,5 +1,5 @@
-
-from __future__ import with_statement
+from threading import Thread
+from time import sleep
 import pygame
 import sys
 import math
@@ -26,7 +26,7 @@ AI_PIECE = YELLOW_PIECE
 
 def make_move(col):
 
-	global Color, game_over, screen, nodesvisited
+	global Color, game_over, screen
 	if  board.canPlay(col):
 			
 		board.drop_piece(col)
@@ -182,6 +182,27 @@ def draw_board(board):
 	pygame.display.update()
 
 
+class SolverThread(Thread):
+    def __init__(self, board):
+        Thread.__init__(self)
+        self.col = None
+        self.AnalysisDone = False
+        self.evaluation = None
+        self.analysis = None
+        self.daemon = True
+        self.board = board
+        
+    def run(self) -> None:
+        self.AnalysisDone = False
+        self.analysis  = solver.analyze(self.board)
+        print(self.analysis)  # logging , delete later
+        self.col = max(self.analysis, key= lambda x : self.analysis[x])
+        self.evaluation = self.analysis[self.col]
+        self.AnalysisDone = True
+        sleep(0.5)
+
+analisys = SolverThread(None)
+
 btnAiToggle = create_button(width - 130, height + 2, 90, 25, 'AI', toggleAi)
 btnRetry = create_button( screen.get_rect().centery -150 ,300,200,75, 'Retry', retryGame)
 btnDepthincr = create_button( 300, height+1, 13, 13,"+", depthincr)
@@ -192,7 +213,6 @@ pygame.display.update()
 
 myfont = pygame.font.SysFont("monospace", 75)
 nodesvisited = 0
-livedepth = 0
 evaluation = 0
 draw_board(board)
 
@@ -203,13 +223,13 @@ while not game_over:
 		Color = RED
 	else:  Color = YELLOW
 
-	for event in pygame.event.get():
+	event = pygame.event.wait(60)
 
 	
-		if event.type == pygame.QUIT:
-			sys.exit()
+	if event.type == pygame.QUIT:
+		sys.exit()
 
-		if event.type == pygame.MOUSEMOTION:
+	if event.type == pygame.MOUSEMOTION:
 			
 			pygame.draw.rect(screen, BLACK, (0,0, width, SQUARESIZE))
 			posx = event.pos[0]
@@ -220,12 +240,12 @@ while not game_over:
 				else:
 					button['color'] = INACTIVE_COLOR
 					
-		pygame.display.update()
+	pygame.display.update()
 		#screen.blit(evalbar, (40,10))
 
 		
 		#get the position of user mouseclick
-		if (event.type == pygame.MOUSEBUTTONDOWN or event.type ==pygame.KEYDOWN) and playernotdone:
+	if (event.type == pygame.MOUSEBUTTONDOWN or event.type ==pygame.KEYDOWN) and playernotdone:
 
 			if event.type == pygame.MOUSEBUTTONDOWN:
 				clicked = False
@@ -270,31 +290,30 @@ while not game_over:
 					playernotdone = False
 				# AI test
 				if board.move_number <20 :
-					col, evaluation ,livedepth = solver.minimax1(board, 0, DEPTH,-math.inf , math.inf)
+					col, evaluation  = solver.minimax1(board, DEPTH,-math.inf , math.inf)
 				else:
 					col, evaluation = solver.negamax_solverr(board, -math.inf , math.inf )
 				evaluation =-evaluation
-
-			if playernotdone == False:
+    
+			if playernotdone == False and not board.current_piece == AI_PIECE:
 				make_move(col)
 				nodesvisited = 0
 				playernotdone = False
 
-	if board.current_piece == AI_PIECE and AI_Enabled and not game_over:
+	if board.current_piece == AI_PIECE and AI_Enabled and not game_over and not analisys.is_alive():
 
-		livedepth = 0
-		
-		#piece = YELLOW_PIECE         
-		# pygame.time.wait(800)
-		if board.move_number <15 :
-			col , evaluation ,livedepth = solver.minimax1(board, 0 ,DEPTH, -math.inf, math.inf)
+		if analisys.AnalysisDone:
+			make_move(analisys.col)
+			evaluation = analisys.evaluation
+			analisys.AnalysisDone = False
+			# AnalysisOver = False
 		else:
-			analysis  = solver.analyze(board)
-			print(analysis)  # logging , delete later
-			col = max(analysis, key= lambda x : analysis[x])
-			evaluation = analysis[col]	
-
-		make_move(col)
+			if board.move_number <15 :
+				col , evaluation = solver.minimax1(board, DEPTH, -math.inf, math.inf)
+				make_move(col)
+			else:
+				analisys = SolverThread(board)
+				analisys.start()
 
 	if game_over:
 
@@ -303,13 +322,15 @@ while not game_over:
 		madedec = False
 		while not madedec:
 			for event in pygame.event.get():
-				if event.type == pygame.MOUSEBUTTONDOWN:
+				if event.type == pygame.QUIT:
+					sys.exit()
+				elif event.type == pygame.MOUSEBUTTONDOWN:
 					if btnRetry['rect'].collidepoint(event.pos):
 						game_over = False
 						board = Board()
 						Board.moves = ""
 						nodesvisited = 0
-					madedec = True
+						madedec = True
 					
 		pygame.time.wait(2000)
 	draw_board(board)

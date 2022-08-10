@@ -112,17 +112,17 @@ class Solver:
 		
 		return score
 
-	def minimax1(self,board,maxdepth, depth,alpha, beta):
+	def minimax1(self,board, depth,alpha, beta):
 
 		Solver.nodesvisited +=1
 		next = board.possibleNonLoosingMoves()		
   
 		if depth == 0 or board.boardfilled(): 
-			return None ,( -Solver.score_position(board, 3- board.current_piece) + Solver.score_position(board, board.current_piece) )* (1+ 0.001*depth), maxdepth
+			return None ,( -Solver.score_position(board, 3- board.current_piece) + Solver.score_position(board, board.current_piece) )* (1+ 0.001*depth)
 
 		bestScore = -math.inf
 
-		tempmaxdepth = maxdepth
+		
 		bestcol = Solver.columnOrder[0]
 			
 		for col in Solver.columnOrder:
@@ -131,7 +131,7 @@ class Solver:
 				if board.isWinningMove(col):
 					score = 100000* (1 + 0.001* depth)
 					
-					return col ,score, maxdepth
+					return col ,score
 
 		for col in Solver.columnOrder:
 			if next & Board.column_mask(col) :
@@ -139,19 +139,19 @@ class Solver:
 				board2 = copy.deepcopy(board)
 				board2.drop_piece(col)
 				
-				k ,new_score , tempmaxdepth2 = self.minimax1(board2, tempmaxdepth + 1, depth-1,-beta,-alpha)
+				k ,new_score  = self.minimax1(board2,  depth-1,-beta,-alpha)
 				new_score = - new_score
 
 				if new_score> bestScore:
 					bestScore = new_score
 					bestcol = col
-					maxdepth = tempmaxdepth2
+					
 
 				if new_score> alpha:
 					alpha = new_score
 					if alpha >= beta:
 						break
-		return bestcol, bestScore, maxdepth
+		return bestcol, bestScore
 
 
 	def solve(self, board, weak = False):
