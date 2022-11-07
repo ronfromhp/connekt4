@@ -112,13 +112,13 @@ class Solver:
 		
 		return score
 
-	def minimax1(self,board, depth,alpha, beta):
+	def minimax1(self,board:Board, depth,alpha, beta):
 
 		Solver.nodesvisited +=1
 		next = board.possibleNonLoosingMoves()		
   
 		if depth == 0 or board.boardfilled(): 
-			return None ,( -Solver.score_position(board, 3- board.current_piece) + Solver.score_position(board, board.current_piece) )* (1+ 0.001*depth)
+			return None , Board.popcount(board.winning_position())- Board.popcount(board.opponent_winning_position())
 
 		bestScore = -math.inf
 
@@ -126,7 +126,7 @@ class Solver:
 		bestcol = Solver.columnOrder[0]
 			
 		for col in Solver.columnOrder:
-			if next & Board.column_mask(col) :
+			if board.canPlay(col) :
 
 				if board.isWinningMove(col):
 					score = 100000* (1 + 0.001* depth)

@@ -1,5 +1,6 @@
+import asyncio
 from threading import Thread
-from time import sleep
+
 import pygame
 import sys
 import math
@@ -12,17 +13,14 @@ BLACK = (0,0,0)
 RED = (153, 0, 0)
 YELLOW = (230, 202, 25)
 WHITE = (250,250,250)
-EMPTY = 0
-RED_PIECE = 1
-YELLOW_PIECE = 2
-DEPTH = 6
 
+DEPTH = 7
 
 ROW_COUNT = 6
 COLUMN_COUNT = 7
 
-AI_PIECE = YELLOW_PIECE
-
+AI_PIECE = Board.YELLOW_PIECE
+USER_PIECE = Board.RED_PIECE
 
 def make_move(col):
 
@@ -33,7 +31,7 @@ def make_move(col):
 		Board.current_piece = 3 - Board.current_piece
 
 		if board.winning_move(3-board.current_piece):
-			Color = YELLOW if board.current_piece == RED_PIECE else RED
+			Color = YELLOW if board.current_piece == Board.RED_PIECE else RED
 			winstring = "Player "+ str(3 - board.current_piece) +" wins!!"
 			label = myfont.render( winstring , True, Color)
 			screen.blit(label, (20,5))
@@ -65,8 +63,8 @@ FONT = pygame.font.SysFont("arial", 20)
 # Font(None, 32)
 AI_Enabled = True
 
-width = COLUMN_COUNT * SQUARESIZE
-height = (ROW_COUNT+1) * SQUARESIZE
+width = Board.COLUMN_COUNT * SQUARESIZE
+height = (Board.ROW_COUNT+1) * SQUARESIZE
 
 size = (width, height+50)
 
@@ -131,14 +129,14 @@ def draw_board(board):
 	
 	boord = board.getArrayRep()
 	global evaluation
-	for c in range(COLUMN_COUNT):
-		for r in range(ROW_COUNT):
+	for c in range(Board.COLUMN_COUNT):
+		for r in range(Board.ROW_COUNT):
 			pygame.draw.rect(screen, BLUE, (c*SQUARESIZE, r*SQUARESIZE+SQUARESIZE, SQUARESIZE, SQUARESIZE))
 			gfxdraw.aacircle(screen, int(c*SQUARESIZE+SQUARESIZE/2), int(r*SQUARESIZE+SQUARESIZE+SQUARESIZE/2), RADIUS, BLACK)
 			gfxdraw.filled_circle(screen, int(c*SQUARESIZE+SQUARESIZE/2), int(r*SQUARESIZE+SQUARESIZE+SQUARESIZE/2), RADIUS, BLACK)
 
-	for c in range(COLUMN_COUNT):
-		for r in range(ROW_COUNT):		
+	for c in range(Board.COLUMN_COUNT):
+		for r in range(Board.ROW_COUNT):		
 			if boord[r][c] == 1:
 				gfxdraw.filled_circle(screen, int(c*SQUARESIZE+SQUARESIZE/2), height - int(r*SQUARESIZE+SQUARESIZE/2), RADIUS-5, RED)
 				gfxdraw.aacircle(screen, int(c*SQUARESIZE+SQUARESIZE/2), height - int(r*SQUARESIZE+SQUARESIZE/2), RADIUS-5, RED)
@@ -146,13 +144,13 @@ def draw_board(board):
 				gfxdraw.aacircle(screen, int(c*SQUARESIZE+SQUARESIZE/2), height - int(r*SQUARESIZE+SQUARESIZE/2), RADIUS-5, YELLOW)
 				gfxdraw.filled_circle(screen, int(c*SQUARESIZE+SQUARESIZE/2), height - int(r*SQUARESIZE+SQUARESIZE/2), RADIUS-5, YELLOW)
 
-	if evaluation >100  or evaluation <-100 or  board.move_number> 17:
+	if evaluation >100  or evaluation <-100 or  board.move_number> 15:
 		if evaluation == 0:
 			msg = "Draw in "
 		else:
 			msg = "You lose in " if evaluation >0 else "You win in "
 
-		evalstr = msg + str(42 - board.nbMoves() - 2*abs(evaluation)) + " moves"	
+		evalstr = msg + str(ROW_COUNT*COLUMN_COUNT - board.nbMoves() - 2*abs(evaluation)) + " moves"	
 	else :
 		evalstr = str(board.move_number) +"  |  Evaluation = " + str(evaluation) 
 
@@ -161,47 +159,26 @@ def draw_board(board):
 	nodebar = FONT.render(nodestr, True, WHITE)
 	dpthbar = FONT.render(dpthstr, True, WHITE)
 	evalbar = FONT.render(evalstr, True, WHITE)
-	barlen = (evaluation)/50
-	yelobarlen = max(0, barlen)
-	redbarlen = min(0, barlen)
+	barlen = (evaluation)/10
+	yelobarlen = min(width, barlen)
 	evalsurf = pygame.Surface((width, 50))
 	evalsurf.blit(evalbar, (10,2))
 	evalsurf.blit(dpthbar, (200,2))
 	evalsurf.blit(nodebar, (350,2))
 
 	pygame.draw.rect(evalsurf, RED, (0, 30, width/2 + width, 10 ))
-	pygame.draw.rect(evalsurf, YELLOW, (0, 30, width/2 + width * (yelobarlen +redbarlen), 10 ))
-	pygame.display.update()
+	pygame.draw.rect(evalsurf, YELLOW, (0, 30, width/2 + width * (yelobarlen), 10 ))
+	# pygame.display.update()
 
 	screen.blit(evalsurf, (0, height))
-	
 	
 	for button in buttonlist:
 		draw_button(button, screen)
 
-	pygame.display.update()
+	# pygame.display.update()
 
 
-class SolverThread(Thread):
-    def __init__(self, board):
-        Thread.__init__(self)
-        self.col = None
-        self.AnalysisDone = False
-        self.evaluation = None
-        self.analysis = None
-        self.daemon = True
-        self.board = board
-        
-    def run(self) -> None:
-        self.AnalysisDone = False
-        self.analysis  = solver.analyze(self.board)
-        print(self.analysis)  # logging , delete later
-        self.col = max(self.analysis, key= lambda x : self.analysis[x])
-        self.evaluation = self.analysis[self.col]
-        self.AnalysisDone = True
-        sleep(0.5)
-
-analisys = SolverThread(None)
+analisys = Thread(None)
 
 btnAiToggle = create_button(width - 130, height + 2, 90, 25, 'AI', toggleAi)
 btnRetry = create_button( screen.get_rect().centery -150 ,300,200,75, 'Retry', retryGame)
@@ -216,121 +193,128 @@ nodesvisited = 0
 evaluation = 0
 draw_board(board)
 
-while not game_over:
 
-	playernotdone = True
-	if board.current_piece == RED_PIECE:
-		Color = RED
-	else:  Color = YELLOW
-
-	event = pygame.event.wait(60)
-
+async def main():
 	
-	if event.type == pygame.QUIT:
-		sys.exit()
+		global board, solver, game_over, analisys, evaluation
+		col = 0
+		calcrunning = 0
+		calchandled = True
+  
+		while not game_over:
 
-	if event.type == pygame.MOUSEMOTION:
-			
-			pygame.draw.rect(screen, BLACK, (0,0, width, SQUARESIZE))
-			posx = event.pos[0]
-			pygame.draw.circle(screen, Color, (posx, int(SQUARESIZE/2)), RADIUS)
-			for button in buttonlist:
-				if button['rect'].collidepoint(event.pos):
-					button['color'] = ACTIVE_COLOR
-				else:
-					button['color'] = INACTIVE_COLOR
-					
-	pygame.display.update()
-		#screen.blit(evalbar, (40,10))
+			playernotdone = True
+			event = pygame.event.wait(300)
+   
+			if event.type == pygame.QUIT:
+				sys.exit()
 
-		
-		#get the position of user mouseclick
-	if (event.type == pygame.MOUSEBUTTONDOWN or event.type ==pygame.KEYDOWN) and playernotdone:
-
-			if event.type == pygame.MOUSEBUTTONDOWN:
-				clicked = False
-				for button in buttonlist:
-					# `event.pos` is the mouse position.
-					if button['rect'].collidepoint(event.pos):
-						# Increment the number by calling the callback
-						# function in the button list.
-						button['callback']()
-						clicked = True	
-				
-				if not clicked:
-
+			if event.type == pygame.MOUSEMOTION:
+					Color = RED #if Board.current_piece == Board.RED_PIECE else YELLOW
 					pygame.draw.rect(screen, BLACK, (0,0, width, SQUARESIZE))
 					posx = event.pos[0]
-					col = int(math.floor(posx/SQUARESIZE))
-					# make_move(col)
-					# nodesvisited = 0
-					playernotdone = False
+					pygame.draw.circle(screen, Color, (posx, int(SQUARESIZE/2)), RADIUS)
+					for button in buttonlist:
+						if button['rect'].collidepoint(event.pos):
+							button['color'] = ACTIVE_COLOR
+						else:
+							button['color'] = INACTIVE_COLOR
+							
+			# pygame.display.update()
+				
+				#get the position of user mouseclick
+			if (event.type == MOUSEBUTTONDOWN or event.type ==pygame.KEYDOWN) and playernotdone or not AI_Enabled:
 
-			elif event.type == pygame.KEYDOWN:
-				if event.key == pygame.K_1:
-					col = 0
-					playernotdone = False
-				if event.key == pygame.K_2:
-					col = 1
-					playernotdone = False
-				if event.key == pygame.K_3:
-					col = 2
-					playernotdone = False
-				if event.key == pygame.K_4:
-					col = 3
-					playernotdone = False
-				if event.key == pygame.K_5:
-					col = 4
-					playernotdone = False
-				if event.key == pygame.K_6:
-					col = 5
-					playernotdone = False
-				if event.key == pygame.K_7:
-					col = 6
-					playernotdone = False
-				# AI test
-				if board.move_number <20 :
-					col, evaluation  = solver.minimax1(board, DEPTH,-math.inf , math.inf)
-				else:
-					col, evaluation = solver.negamax_solverr(board, -math.inf , math.inf )
-				evaluation =-evaluation
-    
-			if playernotdone == False and not board.current_piece == AI_PIECE:
-				make_move(col)
-				nodesvisited = 0
-				playernotdone = False
+					if event.type == MOUSEBUTTONDOWN:
+						clicked = False
+						for button in buttonlist:
+							# `event.pos` is the mouse position.
+							if button['rect'].collidepoint(event.pos):
+								# Increment the number by calling the callback
+								# function in the button list.
+								button['callback']()
+								clicked = True	
+						
+						if not clicked:
 
-	if board.current_piece == AI_PIECE and AI_Enabled and not game_over and not analisys.is_alive():
+							pygame.draw.rect(screen, BLACK, (0,0, width, SQUARESIZE))
+							posx = event.pos[0]
+							col = int(math.floor(posx/SQUARESIZE))
+							# make_move(col)
+							# nodesvisited = 0
+							playernotdone = False
 
-		if analisys.AnalysisDone:
-			make_move(analisys.col)
-			evaluation = analisys.evaluation
-			analisys.AnalysisDone = False
-			# AnalysisOver = False
-		else:
-			if board.move_number <15 :
-				col , evaluation = solver.minimax1(board, DEPTH, -math.inf, math.inf)
-				make_move(col)
-			else:
-				analisys = SolverThread(board)
-				analisys.start()
+					elif event.type == pygame.KEYDOWN:
+						playernotdone = False
+						if event.key == pygame.K_1:
+							col = 0
+						if event.key == pygame.K_2:
+							col = 1
+						if event.key == pygame.K_3:
+							col = 2	
+						if event.key == pygame.K_4:
+							col = 3
+						if event.key == pygame.K_5:
+							col = 4
+						if event.key == pygame.K_6:
+							col = 5
+						if event.key == pygame.K_7:
+							col = 6
+						else: playernotdone = True
+						# # AI test
+						# if board.move_number <20 :
+						# 	col, evaluation  = solver.minimax1(board, DEPTH,-math.inf , math.inf)
+						# else:
+						# 	col, evaluation = solver.negamax_solverr(board, -math.inf , math.inf )
+						# evaluation =-evaluation
+			
+					if playernotdone == False and Board.current_piece == USER_PIECE:
+						make_move(col)
+						playernotdone = False
 
-	if game_over:
+			if Board.current_piece == AI_PIECE and AI_Enabled and not game_over and not analisys.is_alive():
 
-		draw_button(btnRetry, screen)
-		pygame.display.update()
-		madedec = False
-		while not madedec:
-			for event in pygame.event.get():
-				if event.type == pygame.QUIT:
-					sys.exit()
-				elif event.type == pygame.MOUSEBUTTONDOWN:
-					if btnRetry['rect'].collidepoint(event.pos):
-						game_over = False
-						board = Board()
-						Board.moves = ""
-						nodesvisited = 0
-						madedec = True
+				if calchandled: 
+					def lambad():
+						global evaluation
+						nonlocal col
+						# calcrunning  = True
+						if board.move_number <15 :
+							col , evaluation = solver.minimax1(board, DEPTH, -math.inf, math.inf)
+						else: 
+							analysis  = solver.analyze(board)
+							col = max(analysis, key= lambda x : analysis[x])
+							evaluation = analysis[col]
+						# calcrunning = False
+					Solver.nodesvisited = 0
+					analisys = Thread(target= lambad)
+					analisys.start()
+					calchandled = False
 					
-		pygame.time.wait(2000)
-	draw_board(board)
+				elif not calchandled:
+					make_move(col)
+					calchandled = True
+			
+			if game_over:
+
+				draw_button(btnRetry, screen)
+				pygame.display.update()
+				madedec = False
+				while not madedec:
+					for event in pygame.event.get():
+						if event.type == pygame.QUIT:
+							sys.exit()
+						elif event.type == pygame.MOUSEBUTTONDOWN:
+							if btnRetry['rect'].collidepoint(event.pos):
+								game_over = False
+								board = Board()
+								Board.moves = ""
+								madedec = True
+							
+				pygame.time.wait(500)
+			draw_board(board)
+			pygame.display.update()
+	
+
+if __name__ == '__main__':
+    asyncio.run(main())
