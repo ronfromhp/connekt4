@@ -12,8 +12,8 @@ class Board:
 	RED_PIECE = 1
 	YELLOW_PIECE = 2
 	current_piece = 0  
-	MIN_SCORE = -(ROW_COUNT* COLUMN_COUNT)/2 +3
-	MAX_SCORE = (ROW_COUNT * COLUMN_COUNT)/2 -3
+	MIN_SCORE = -(ROW_COUNT* COLUMN_COUNT)//2 +3
+	MAX_SCORE = (ROW_COUNT * COLUMN_COUNT)//2 -3
 	moves = ""
 
 	def __init__(self , move_number=0) -> None:

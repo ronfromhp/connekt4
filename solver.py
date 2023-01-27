@@ -34,9 +34,8 @@ class Solver:
 				return alpha
 
 		max = int((Board.COLUMN_COUNT* Board.ROW_COUNT -1 - board.move_number)/2)
-		if board.key() in self.table.ttable:
-			max = self.table.get(board.key()) + Board.MIN_SCORE -1
-			
+		if val := board.key() in self.table.ttable:
+			max = val + Board.MIN_SCORE -1
 		if beta > max:
 			beta = max
 			if alpha >= beta:

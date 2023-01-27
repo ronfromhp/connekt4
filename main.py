@@ -150,7 +150,7 @@ def draw_board(board):
 		else:
 			msg = "You lose in " if evaluation >0 else "You win in "
 
-		evalstr = msg + str(ROW_COUNT*COLUMN_COUNT - board.nbMoves() - 2*abs(evaluation)) + " moves"	
+		evalstr = msg + str(ROW_COUNT*COLUMN_COUNT - board.nbMoves() +2 - 2*abs(evaluation)) + " moves"	
 	else :
 		evalstr = str(board.move_number) +"  |  Evaluation = " + str(evaluation) 
 
@@ -303,6 +303,7 @@ async def main():
 				while not madedec:
 					for event in pygame.event.get():
 						if event.type == pygame.QUIT:
+							solver.table.reset()
 							sys.exit()
 						elif event.type == pygame.MOUSEBUTTONDOWN:
 							if btnRetry['rect'].collidepoint(event.pos):
